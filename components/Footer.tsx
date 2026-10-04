@@ -216,17 +216,6 @@ export default function Footer() {
                 <span>web.nestle.og@gmail.com</span>
               </a>
 
-              {/* Phone Link */}
-              <a
-                href="tel:+919876543210"
-                aria-label="WebNestle Phone"
-                className="inline-flex items-center gap-2.5 text-sm text-slate-400 hover:text-white transition-colors group cursor-pointer w-fit"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform flex-shrink-0">
-                  <Phone className="w-4 h-4" />
-                </div>
-                <span>+91 72910 92008</span>
-              </a>
             </div>
           </motion.div>
 
