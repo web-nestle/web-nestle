@@ -450,7 +450,7 @@ export default function Contact() {
                   {status === "submitting" ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin text-white" />
-                      <span>Processing & Generating ID...</span>
+                      <span>Sending...</span>
                     </>
                   ) : (
                     <>
@@ -482,17 +482,17 @@ export default function Contact() {
                 <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
 
-              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">
-                Enquiry Submitted Successfully!
+              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-3">
+                Thanks for Submitting!
               </h3>
 
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6">
-                We sent a notification email to <span className="font-semibold text-pink-400">web.nestle.og@gmail.com</span>. Please save your client tracking credentials below:
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
+                Our team will contact you within <span className="font-semibold text-pink-400">48 hrs</span>. Save your tracking credentials below:
               </p>
 
               {/* TRACKING CREDENTIALS BOX */}
-              <div className="bg-slate-950/90 border border-indigo-500/30 rounded-2xl p-5 mb-6 text-left space-y-3 shadow-inner">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="bg-slate-950/90 border border-indigo-500/30 rounded-2xl p-4 mb-6 text-left space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
                     <ShieldCheck className="w-4 h-4 text-indigo-400" />
                     <span>TRACKING ID:</span>
