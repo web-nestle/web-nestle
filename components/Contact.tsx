@@ -8,9 +8,7 @@ import {
   AlertCircle, 
   Sparkles,
   Loader2,
-  Mail,
-  Key,
-  ShieldCheck
+  Mail
 } from "lucide-react";
 
 // Clean SVG Instagram Icon component
@@ -67,12 +65,6 @@ export default function Contact() {
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  
-  // Tracking credentials state returned from API
-  const [trackingDetails, setTrackingDetails] = useState({
-    trackingId: "",
-    tempPassword: "",
-  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -150,46 +142,44 @@ export default function Contact() {
     setStatus("submitting");
     setErrorMessage("");
 
+    const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
+
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          business: formData.business,
-          email: formData.email,
-          phone: formData.phone.trim() || "Not provided",
-          instagram: formData.instagram.trim() || "Not provided",
-          service: formData.projectType,
-          budget: formData.budget,
-          message: formData.message,
-        }),
-      });
+      if (accessKey && accessKey !== "YOUR_WEB3FORMS_ACCESS_KEY_HERE") {
+        const response = await fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            access_key: accessKey,
+            subject: `New Inquiry from ${formData.name} (${formData.business})`,
+            from_name: formData.name,
+            name: formData.name,
+            business: formData.business,
+            email: formData.email,
+            phone: formData.phone.trim() || "Not provided",
+            instagram: formData.instagram.trim() || "Not provided",
+            project_type: formData.projectType,
+            budget: formData.budget,
+            message: formData.message,
+          }),
+        });
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("API route not found or returned an invalid response.");
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.message || "Submission failed");
+        }
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || "Submission failed");
-      }
-
-      setTrackingDetails({
-        trackingId: result.trackingId,
-        tempPassword: result.tempPassword,
-      });
 
       setStatus("success");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Form submission error:", err);
       setStatus("error");
-      setErrorMessage(err.message || "Something went wrong. Please try again or reach out on Instagram.");
+      setErrorMessage("Something went wrong. Please try again or reach out on Instagram.");
     }
   };
 
@@ -486,32 +476,9 @@ export default function Contact() {
                 Thanks for Submitting!
               </h3>
 
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
-                Our team will contact you within <span className="font-semibold text-pink-400">48 hrs</span>. Save your tracking credentials below:
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-8">
+                Our team will contact you within <span className="font-semibold text-pink-400">48 hrs</span>. We will send you all the details through email or IG. Stay tuned!
               </p>
-
-              {/* TRACKING CREDENTIALS BOX */}
-              <div className="bg-slate-950/90 border border-indigo-500/30 rounded-2xl p-4 mb-6 text-left space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                    <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                    <span>TRACKING ID:</span>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-lg border border-indigo-800/50">
-                    {trackingDetails.trackingId}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                    <Key className="w-4 h-4 text-pink-400" />
-                    <span>TEMP PASSWORD:</span>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-pink-300 bg-pink-950/60 px-3 py-1 rounded-lg border border-pink-800/50">
-                    {trackingDetails.tempPassword}
-                  </span>
-                </div>
-              </div>
 
               <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 mb-8 flex items-center justify-between">
                 <div className="flex items-center gap-3">
