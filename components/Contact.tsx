@@ -1,24 +1,34 @@
+
 "use client";
 
 import React, { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
   Sparkles,
   Loader2,
   Mail,
-  Key,
-  ShieldCheck
+  ShieldCheck,
+  Copy,
+  Check,
 } from "lucide-react";
 
 // Clean SVG Instagram Icon component
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
   </svg>
 );
 
@@ -65,47 +75,73 @@ export default function Contact() {
     instagram: "",
   });
 
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-  
-  // Tracking credentials state returned from API
-  const [trackingDetails, setTrackingDetails] = useState({
-    trackingId: "",
-    tempPassword: "",
-  });
+  const [status, setStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const [errorMessage, setErrorMessage] = useState("");
+  const [trackingId, setTrackingId] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({ ...prev, [name]: value }));
-     
-    if (name === "email" && errors.email) setErrors((prev) => ({ ...prev, email: "" }));
-    if (name === "phone" && errors.phone) setErrors((prev) => ({ ...prev, phone: "" }));
-    if (name === "instagram" && errors.instagram) setErrors((prev) => ({ ...prev, instagram: "" }));
+
+    if (name === "email" && errors.email) {
+      setErrors((prev) => ({ ...prev, email: "" }));
+    }
+
+    if (name === "phone" && errors.phone) {
+      setErrors((prev) => ({ ...prev, phone: "" }));
+    }
+
+    if (name === "instagram" && errors.instagram) {
+      setErrors((prev) => ({ ...prev, instagram: "" }));
+    }
   };
 
   const validateInputs = () => {
     let isValid = true;
-    let newErrors = { email: "", phone: "", instagram: "" };
+
+    const newErrors = {
+      email: "",
+      phone: "",
+      instagram: "",
+    };
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!formData.email.trim() || !emailRegex.test(formData.email)) {
-      newErrors.email = "Please type your correct email id (e.g. name@domain.com)";
+      newErrors.email =
+        "Please type your correct email id (e.g. name@domain.com)";
       isValid = false;
     }
 
     const phoneClean = formData.phone.trim();
+
     if (phoneClean !== "" && phoneClean.length < 7) {
       newErrors.phone = "Please enter a valid phone number";
       isValid = false;
     }
 
     const igClean = formData.instagram.trim();
-    if (igClean !== "" && (igClean.length < 2 || igClean.includes(" "))) {
-      newErrors.instagram = "Please type a valid username or IG id (e.g. @web_nestle)";
+
+    if (
+      igClean !== "" &&
+      (igClean.length < 2 || igClean.includes(" "))
+    ) {
+      newErrors.instagram =
+        "Please type a valid username or IG id (e.g. @web_nestle)";
       isValid = false;
     }
 
     setErrors(newErrors);
+
     return isValid;
   };
 
@@ -117,6 +153,7 @@ export default function Contact() {
       setStatus("error");
       return;
     }
+
     if (!formData.business.trim()) {
       setErrorMessage("Please enter your business or brand name.");
       setStatus("error");
@@ -125,7 +162,9 @@ export default function Contact() {
 
     if (!validateInputs()) {
       setStatus("error");
-      setErrorMessage("Please fix the highlighted errors below before submitting.");
+      setErrorMessage(
+        "Please fix the highlighted errors below before submitting."
+      );
       return;
     }
 
@@ -149,6 +188,7 @@ export default function Contact() {
 
     setStatus("submitting");
     setErrorMessage("");
+    setCopied(false);
 
     try {
       const response = await fetch("/api/contact", {
@@ -163,33 +203,53 @@ export default function Contact() {
           email: formData.email,
           phone: formData.phone.trim() || "Not provided",
           instagram: formData.instagram.trim() || "Not provided",
-          service: formData.projectType,
+          projectType: formData.projectType,
           budget: formData.budget,
           message: formData.message,
         }),
       });
 
       const contentType = response.headers.get("content-type");
+
       if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("API route not found or returned an invalid response.");
+        throw new Error(
+          "API route not found or returned an invalid response."
+        );
       }
 
       const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || "Submission failed");
+
+      if (!response.ok || !result.success || !result.trackingId) {
+        throw new Error(
+          result.message ||
+            result.error ||
+            "Submission failed. Please try again."
+        );
       }
 
-      setTrackingDetails({
-        trackingId: result.trackingId,
-        tempPassword: result.tempPassword,
-      });
-
+      setTrackingId(result.trackingId);
       setStatus("success");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Form submission error:", err);
+
       setStatus("error");
-      setErrorMessage(err.message || "Something went wrong. Please try again or reach out on Instagram.");
+
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again or reach out on Instagram."
+      );
+    }
+  };
+
+  const handleCopyTrackingId = async () => {
+    try {
+      await navigator.clipboard.writeText(trackingId);
+      setCopied(true);
+    } catch {
+      setErrorMessage(
+        "Could not copy automatically. Please select and copy your enquiry ID."
+      );
     }
   };
 
@@ -202,10 +262,11 @@ export default function Contact() {
 
       <div className="max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          
           {/* LEFT COLUMN */}
           <motion.div
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            initial={
+              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
+            }
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
@@ -224,7 +285,9 @@ export default function Contact() {
               </h2>
 
               <p className="text-base sm:text-lg text-slate-300 font-normal leading-relaxed mb-8">
-                Tell us what you&apos;re building, what you need and where you want to go. Drop your details and we&apos;ll get back to you fast.
+                Tell us what you&apos;re building, what you need and where you
+                want to go. Drop your details and we&apos;ll get back to you
+                fast.
               </p>
             </div>
 
@@ -232,7 +295,7 @@ export default function Contact() {
               <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
                 Prefer to talk directly?
               </p>
-               
+
               <div className="flex flex-wrap items-center gap-3">
                 <a
                   href="https://instagram.com/web_nestle"
@@ -262,7 +325,9 @@ export default function Contact() {
 
           {/* RIGHT COLUMN */}
           <motion.div
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 30 }}
+            initial={
+              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 30 }
+            }
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -280,7 +345,10 @@ export default function Contact() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  <label
+                    htmlFor="name"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                  >
                     Name <span className="text-pink-400">*</span>
                   </label>
                   <input
@@ -296,8 +364,12 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="business" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Business / Brand Name <span className="text-pink-400">*</span>
+                  <label
+                    htmlFor="business"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                  >
+                    Business / Brand Name{" "}
+                    <span className="text-pink-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -314,7 +386,10 @@ export default function Contact() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  <label
+                    htmlFor="email"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                  >
                     Email <span className="text-pink-400">*</span>
                   </label>
                   <input
@@ -326,19 +401,28 @@ export default function Contact() {
                     onChange={handleChange}
                     placeholder="you@example.com"
                     className={`w-full bg-slate-900/90 border rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
-                      errors.email ? "border-red-500 ring-1 ring-red-500" : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      errors.email
+                        ? "border-red-500 ring-1 ring-red-500"
+                        : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     }`}
                   />
                   {errors.email && (
                     <p className="text-xs text-red-400 flex items-center gap-1 mt-1 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.email}
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />{" "}
+                      {errors.email}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="phone" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Phone / WhatsApp <span className="text-slate-500 font-normal">(Optional)</span>
+                  <label
+                    htmlFor="phone"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                  >
+                    Phone / WhatsApp{" "}
+                    <span className="text-slate-500 font-normal">
+                      (Optional)
+                    </span>
                   </label>
                   <input
                     type="tel"
@@ -348,20 +432,29 @@ export default function Contact() {
                     onChange={handleChange}
                     placeholder="+91 98765 43210"
                     className={`w-full bg-slate-900/90 border rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
-                      errors.phone ? "border-red-500 ring-1 ring-red-500" : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      errors.phone
+                        ? "border-red-500 ring-1 ring-red-500"
+                        : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     }`}
                   />
                   {errors.phone && (
                     <p className="text-xs text-red-400 flex items-center gap-1 mt-1 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.phone}
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />{" "}
+                      {errors.phone}
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="instagram" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Instagram Handle <span className="text-slate-500 font-normal">(Optional)</span>
+                <label
+                  htmlFor="instagram"
+                  className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                >
+                  Instagram Handle{" "}
+                  <span className="text-slate-500 font-normal">
+                    (Optional)
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -371,19 +464,25 @@ export default function Contact() {
                   onChange={handleChange}
                   placeholder="@yourusername"
                   className={`w-full bg-slate-900/90 border rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
-                    errors.instagram ? "border-red-500 ring-1 ring-red-500" : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    errors.instagram
+                      ? "border-red-500 ring-1 ring-red-500"
+                      : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                   }`}
                 />
                 {errors.instagram && (
                   <p className="text-xs text-red-400 flex items-center gap-1 mt-1 font-medium">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.instagram}
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />{" "}
+                    {errors.instagram}
                   </p>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label htmlFor="projectType" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  <label
+                    htmlFor="projectType"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                  >
                     Project Type <span className="text-pink-400">*</span>
                   </label>
                   <select
@@ -394,9 +493,15 @@ export default function Contact() {
                     onChange={handleChange}
                     className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all cursor-pointer"
                   >
-                    <option value="" disabled>Select project type...</option>
+                    <option value="" disabled>
+                      Select project type...
+                    </option>
                     {projectTypes.map((type) => (
-                      <option key={type} value={type} className="bg-slate-900 text-white">
+                      <option
+                        key={type}
+                        value={type}
+                        className="bg-slate-900 text-white"
+                      >
                         {type}
                       </option>
                     ))}
@@ -404,7 +509,10 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="budget" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  <label
+                    htmlFor="budget"
+                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                  >
                     Budget Range <span className="text-pink-400">*</span>
                   </label>
                   <select
@@ -415,9 +523,15 @@ export default function Contact() {
                     onChange={handleChange}
                     className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all cursor-pointer"
                   >
-                    <option value="" disabled>Select budget range...</option>
+                    <option value="" disabled>
+                      Select budget range...
+                    </option>
                     {budgetRanges.map((range) => (
-                      <option key={range} value={range} className="bg-slate-900 text-white">
+                      <option
+                        key={range}
+                        value={range}
+                        className="bg-slate-900 text-white"
+                      >
                         {range}
                       </option>
                     ))}
@@ -426,8 +540,12 @@ export default function Contact() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="message" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Tell Us About Your Project <span className="text-pink-400">*</span>
+                <label
+                  htmlFor="message"
+                  className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
+                >
+                  Tell Us About Your Project{" "}
+                  <span className="text-pink-400">*</span>
                 </label>
                 <textarea
                   id="message"
@@ -462,7 +580,6 @@ export default function Contact() {
               </button>
             </form>
           </motion.div>
-
         </div>
       </div>
 
@@ -477,7 +594,6 @@ export default function Contact() {
             className="fixed inset-0 z-50 bg-[#07090e]/98 backdrop-blur-3xl flex items-center justify-center px-4 sm:px-6"
           >
             <div className="max-w-lg w-full bg-slate-900/90 border border-slate-800/80 rounded-3xl p-8 sm:p-10 shadow-2xl shadow-purple-500/10 text-center relative">
-               
               <div className="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-6">
                 <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
@@ -487,30 +603,46 @@ export default function Contact() {
               </h3>
 
               <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
-                Our team will contact you within <span className="font-semibold text-pink-400">48 hrs</span>. Save your tracking credentials below:
+                Our team will contact you within{" "}
+                <span className="font-semibold text-pink-400">48 hrs</span>.
+                Save your enquiry ID below.
               </p>
 
-              {/* TRACKING CREDENTIALS BOX */}
-              <div className="bg-slate-950/90 border border-indigo-500/30 rounded-2xl p-4 mb-6 text-left space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                    <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                    <span>TRACKING ID:</span>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-indigo-300 bg-indigo-950/60 px-3 py-1 rounded-lg border border-indigo-800/50">
-                    {trackingDetails.trackingId}
-                  </span>
+              {/* ENQUIRY ID BOX */}
+              <div className="bg-slate-950/90 border border-indigo-500/30 rounded-2xl p-4 mb-6 text-left">
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-mono mb-3">
+                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                  <span>YOUR ENQUIRY ID</span>
                 </div>
 
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                    <Key className="w-4 h-4 text-pink-400" />
-                    <span>TEMP PASSWORD:</span>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-pink-300 bg-pink-950/60 px-3 py-1 rounded-lg border border-pink-800/50">
-                    {trackingDetails.tempPassword}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-sm font-mono font-bold text-indigo-300 bg-indigo-950/60 px-3 py-2 rounded-lg border border-indigo-800/50 break-all">
+                    {trackingId}
                   </span>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyTrackingId}
+                    className="inline-flex items-center gap-2 text-sm text-white border border-slate-700 hover:border-indigo-400 rounded-lg px-3 py-2 transition-colors"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy ID
+                      </>
+                    )}
+                  </button>
                 </div>
+
+                <p className="text-xs text-slate-400 mt-3">
+                  Save this ID for future communication with Web Nestle. It is
+                  an enquiry reference, not a login password.
+                </p>
               </div>
 
               <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 mb-8 flex items-center justify-between">
@@ -519,10 +651,15 @@ export default function Contact() {
                     <InstagramIcon className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <div className="text-xs text-slate-400 font-medium">Follow us on IG</div>
-                    <div className="text-sm font-bold text-white">@web_nestle</div>
+                    <div className="text-xs text-slate-400 font-medium">
+                      Follow us on IG
+                    </div>
+                    <div className="text-sm font-bold text-white">
+                      @web_nestle
+                    </div>
                   </div>
                 </div>
+
                 <a
                   href="https://instagram.com/web_nestle"
                   target="_blank"
@@ -536,6 +673,14 @@ export default function Contact() {
               <button
                 onClick={() => {
                   setStatus("idle");
+                  setErrorMessage("");
+                  setTrackingId("");
+                  setCopied(false);
+                  setErrors({
+                    email: "",
+                    phone: "",
+                    instagram: "",
+                  });
                   setFormData({
                     name: "",
                     business: "",
@@ -552,7 +697,6 @@ export default function Contact() {
               >
                 Back to Website
               </button>
-
             </div>
           </motion.div>
         )}
