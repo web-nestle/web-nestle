@@ -15,7 +15,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    let body;
+
+    try {
+      body = await request.json();
+    } catch (error) {
+      console.error("Invalid contact form request JSON:", error);
+
+      return NextResponse.json(
+        { success: false, message: "Invalid form submission. Please refresh and try again." },
+        { status: 400 }
+      );
+    }
 
     const {
       name,
@@ -29,9 +40,12 @@ export async function POST(request: Request) {
     } = body;
 
     if (
-      !name?.trim() ||
-      !email?.trim() ||
-      !business?.trim()
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof email !== "string" ||
+      !email.trim() ||
+      typeof business !== "string" ||
+      !business.trim()
     ) {
       return NextResponse.json(
         {
@@ -43,7 +57,11 @@ export async function POST(request: Request) {
     }
 
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const uniquePart = randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+    const uniquePart = randomUUID()
+      .replace(/-/g, "")
+      .slice(0, 12)
+      .toUpperCase();
+
     const trackingId = `WNE-${date}-${uniquePart}`;
 
     const emailMessage = `
@@ -78,10 +96,36 @@ ${message || "No additional details provided."}
       }
     );
 
-    const result = await web3formsResponse.json();
+    const responseText = await web3formsResponse.text();
+
+    let result;
+
+    try {
+      result = JSON.parse(responseText);
+    } catch (error) {
+      console.error(
+        "Web3Forms returned a non-JSON response. HTTP status:",
+        web3formsResponse.status,
+        "Response preview:",
+        responseText.slice(0, 300)
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: "The email service returned an unexpected response. Please try again later.",
+        },
+        { status: 502 }
+      );
+    }
 
     if (!web3formsResponse.ok || !result.success) {
-      console.error("Web3Forms submission failed:", result);
+      console.error(
+        "Web3Forms submission failed. HTTP status:",
+        web3formsResponse.status,
+        "Response:",
+        result
+      );
 
       return NextResponse.json(
         {
@@ -98,7 +142,7 @@ ${message || "No additional details provided."}
       message: "Your enquiry has been submitted successfully.",
     });
   } catch (error) {
-    console.error("Contact form error:", error);
+    console.error("Contact form server error:", error);
 
     return NextResponse.json(
       {
