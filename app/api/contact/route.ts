@@ -1,70 +1,123 @@
+
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, instagram, business, service, budget, message } = body;
 
-    // 1. Generate Unique Tracking Credentials
-    const trackingId = "WNE-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-    const tempPassword = Math.random().toString(36).substring(2, 10);
+    const {
+      name,
+      email,
+      phone,
+      instagram,
+      business,
+      service,
+      budget,
+      message,
+    } = body;
 
-    // 2. Direct Web3Forms Access Key
-    const accessKey = "e476b122-ac3d-4555-803c-df206bea2921";
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof email !== "string" ||
+      !email.trim() ||
+      typeof business !== "string" ||
+      !business.trim()
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Please provide your name, email and business name.",
+        },
+        { status: 400 }
+      );
+    }
 
-    // 3. Prepare Web3Forms Payload
+    // Generate a unique-looking enquiry reference.
+    // It is NOT a password or proof of identity.
+    const trackingId =
+      `WNE-${Date.now().toString(36).toUpperCase()}-` +
+      crypto.randomUUID().slice(0, 8).toUpperCase();
+
+    const accessKey = process.env.WEB3FORMS_ACCESS_KEY;
+
+    if (!accessKey) {
+      console.error("Web3Forms access key is not configured.");
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Email service is temporarily unavailable.",
+        },
+        { status: 500 }
+      );
+    }
+
     const web3FormsData = {
       access_key: accessKey,
-      subject: `New Lead Submission: ${name} (${service})`,
-      from_name: name,
-      email: email,
+      subject: `New Enquiry: ${trackingId} - ${name}`,
+      from_name: "Web Nestle Website Enquiry",
+      email: email.trim(),
       message: `
-NEW ENQUIRY DETAILS:
--------------------
+NEW WEB NESTLE ENQUIRY
+======================
+
+Enquiry ID: ${trackingId}
+
 Client Name: ${name}
 Email: ${email}
-Phone: ${phone || "N/A"}
-Instagram: ${instagram || "N/A"}
-Business Name: ${business || "N/A"}
+Phone: ${phone || "Not provided"}
+Instagram: ${instagram || "Not provided"}
+Business Name: ${business}
 Requested Service: ${service || "General Enquiry"}
 Budget Range: ${budget || "Not specified"}
 
-Message:
-${message}
+Project Message:
+${message || "Not provided"}
 
--------------------
-GENERATED CLIENT CREDENTIALS:
-Tracking ID: ${trackingId}
-Temporary Password: ${tempPassword}
+Use the enquiry ID above when following up with this client.
       `,
     };
 
-    // 4. Send to Web3Forms API
-    const web3Response = await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(web3FormsData),
-    });
+    const web3Response = await fetch(
+      "https://api.web3forms.com/submit",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(web3FormsData),
+      }
+    );
 
     const web3Result = await web3Response.json();
 
-    if (!web3Result.success) {
+    if (!web3Response.ok || !web3Result.success) {
+      console.error("Web3Forms submission failed.");
+
       return NextResponse.json(
-        { success: false, error: web3Result.message || "Web3Forms submission failed" },
-        { status: 500 }
+        {
+          success: false,
+          error: "Your enquiry could not be sent. Please try again.",
+        },
+        { status: 502 }
       );
     }
 
     return NextResponse.json({
       success: true,
       trackingId,
-      tempPassword,
-      message: "Form processed successfully!",
+      message: "Enquiry submitted successfully.",
     });
-  } catch (err: any) {
-    console.error("API Route Error:", err);
+  } catch {
+    console.error("Contact API request failed.");
+
     return NextResponse.json(
-      { success: false, error: err.message || "Internal Server Error" },
+      {
+        success: false,
+        error: "Something went wrong. Please try again.",
+      },
       { status: 500 }
     );
   }
