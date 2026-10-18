@@ -1,105 +1,92 @@
 
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 
 export async function POST(request: Request) {
   try {
+    const accessKey = process.env.WEB3FORMS_ACCESS_KEY;
+
+    if (!accessKey) {
+      console.error("WEB3FORMS_ACCESS_KEY is not configured.");
+
+      return NextResponse.json(
+        { success: false, message: "Server configuration error." },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
 
     const {
       name,
+      business,
       email,
       phone,
       instagram,
-      business,
-      service,
-      budget,
+      projectType,
       message,
+      budget,
     } = body;
 
     if (
-      typeof name !== "string" ||
-      !name.trim() ||
-      typeof email !== "string" ||
-      !email.trim() ||
-      typeof business !== "string" ||
-      !business.trim()
+      !name?.trim() ||
+      !email?.trim() ||
+      !business?.trim()
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Please provide your name, email and business name.",
+          message: "Please provide your name, email, and business name.",
         },
         { status: 400 }
       );
     }
 
-    // Generate a unique-looking enquiry reference.
-    // It is NOT a password or proof of identity.
-    const trackingId =
-      `WNE-${Date.now().toString(36).toUpperCase()}-` +
-      crypto.randomUUID().slice(0, 8).toUpperCase();
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const uniquePart = randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+    const trackingId = `WNE-${date}-${uniquePart}`;
 
-    const accessKey = process.env.WEB3FORMS_ACCESS_KEY;
-
-    if (!accessKey) {
-      console.error("Web3Forms access key is not configured.");
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Email service is temporarily unavailable.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const web3FormsData = {
-      access_key: accessKey,
-      subject: `New Enquiry: ${trackingId} - ${name}`,
-      from_name: "Web Nestle Website Enquiry",
-      email: email.trim(),
-      message: `
+    const emailMessage = `
 NEW WEB NESTLE ENQUIRY
-======================
 
 Enquiry ID: ${trackingId}
 
-Client Name: ${name}
+Name: ${name}
+Business: ${business}
 Email: ${email}
 Phone: ${phone || "Not provided"}
 Instagram: ${instagram || "Not provided"}
-Business Name: ${business}
-Requested Service: ${service || "General Enquiry"}
-Budget Range: ${budget || "Not specified"}
+Project Type: ${projectType || "Not provided"}
+Budget: ${budget || "Not provided"}
 
-Project Message:
-${message || "Not provided"}
+Project Details:
+${message || "No additional details provided."}
+`;
 
-Use the enquiry ID above when following up with this client.
-      `,
-    };
+    const formData = new FormData();
+    formData.append("access_key", accessKey);
+    formData.append("subject", `New Web Nestle Enquiry - ${trackingId}`);
+    formData.append("from_name", "Web Nestle Website");
+    formData.append("email", email);
+    formData.append("message", emailMessage);
 
-    const web3Response = await fetch(
+    const web3formsResponse = await fetch(
       "https://api.web3forms.com/submit",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(web3FormsData),
+        body: formData,
       }
     );
 
-    const web3Result = await web3Response.json();
+    const result = await web3formsResponse.json();
 
-    if (!web3Response.ok || !web3Result.success) {
-      console.error("Web3Forms submission failed.");
+    if (!web3formsResponse.ok || !result.success) {
+      console.error("Web3Forms submission failed:", result);
 
       return NextResponse.json(
         {
           success: false,
-          error: "Your enquiry could not be sent. Please try again.",
+          message: "Your enquiry could not be sent. Please try again.",
         },
         { status: 502 }
       );
@@ -108,15 +95,15 @@ Use the enquiry ID above when following up with this client.
     return NextResponse.json({
       success: true,
       trackingId,
-      message: "Enquiry submitted successfully.",
+      message: "Your enquiry has been submitted successfully.",
     });
-  } catch {
-    console.error("Contact API request failed.");
+  } catch (error) {
+    console.error("Contact form error:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "Something went wrong. Please try again.",
+        message: "Something went wrong. Please try again.",
       },
       { status: 500 }
     );
