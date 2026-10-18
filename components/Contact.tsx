@@ -1,34 +1,25 @@
-
 "use client";
 
 import React, { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import {
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle,
+import { 
+  ArrowRight, 
+  CheckCircle2, 
+  AlertCircle, 
   Sparkles,
   Loader2,
   Mail,
-  ShieldCheck,
+  Phone,
   Copy,
-  Check,
+  Check
 } from "lucide-react";
 
 // Clean SVG Instagram Icon component
 const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
   </svg>
 );
 
@@ -47,12 +38,12 @@ const projectTypes = [
 ];
 
 const budgetRanges = [
-  "Under ₹5,000",
-  "₹5,000 – ₹10,000",
+  "Under ₹10,000",
   "₹10,000 – ₹25,000",
   "₹25,000 – ₹50,000",
   "₹50,000 – ₹1,00,000",
   "₹1,00,000+",
+  "Not sure yet",
 ];
 
 export default function Contact() {
@@ -75,73 +66,46 @@ export default function Contact() {
     instagram: "",
   });
 
-  const [status, setStatus] = useState<
-    "idle" | "submitting" | "success" | "error"
-  >("idle");
-
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [trackingId, setTrackingId] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (name === "email" && errors.email) {
-      setErrors((prev) => ({ ...prev, email: "" }));
-    }
-
-    if (name === "phone" && errors.phone) {
-      setErrors((prev) => ({ ...prev, phone: "" }));
-    }
-
-    if (name === "instagram" && errors.instagram) {
-      setErrors((prev) => ({ ...prev, instagram: "" }));
-    }
+    
+    if (name === "email" && errors.email) setErrors((prev) => ({ ...prev, email: "" }));
+    if (name === "phone" && errors.phone) setErrors((prev) => ({ ...prev, phone: "" }));
+    if (name === "instagram" && errors.instagram) setErrors((prev) => ({ ...prev, instagram: "" }));
   };
 
   const validateInputs = () => {
     let isValid = true;
+    let newErrors = { email: "", phone: "", instagram: "" };
 
-    const newErrors = {
-      email: "",
-      phone: "",
-      instagram: "",
-    };
-
+    // 1. Email format check (Required)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (!formData.email.trim() || !emailRegex.test(formData.email)) {
-      newErrors.email =
-        "Please type your correct email id (e.g. name@domain.com)";
+      newErrors.email = "Please type your correct email id (e.g. name@domain.com)";
       isValid = false;
     }
 
+    // 2. Phone / WhatsApp check (Optional, but if filled, must look reasonable)
     const phoneClean = formData.phone.trim();
-
     if (phoneClean !== "" && phoneClean.length < 7) {
       newErrors.phone = "Please enter a valid phone number";
       isValid = false;
     }
 
+    // 3. Instagram username check (Optional, but if filled, must not contain spaces)
     const igClean = formData.instagram.trim();
-
-    if (
-      igClean !== "" &&
-      (igClean.length < 2 || igClean.includes(" "))
-    ) {
-      newErrors.instagram =
-        "Please type a valid username or IG id (e.g. @web_nestle)";
+    if (igClean !== "" && (igClean.length < 2 || igClean.includes(" "))) {
+      newErrors.instagram = "Please type a valid username or IG id (e.g. @web_nestle)";
       isValid = false;
     }
 
     setErrors(newErrors);
-
     return isValid;
   };
 
@@ -153,33 +117,21 @@ export default function Contact() {
       setStatus("error");
       return;
     }
-
     if (!formData.business.trim()) {
       setErrorMessage("Please enter your business or brand name.");
       setStatus("error");
       return;
     }
-
     if (!validateInputs()) {
       setStatus("error");
-      setErrorMessage(
-        "Please fix the highlighted errors below before submitting."
-      );
+      setErrorMessage("Please fix the highlighted errors below before submitting.");
       return;
     }
-
     if (!formData.projectType) {
       setErrorMessage("Please select a project type.");
       setStatus("error");
       return;
     }
-
-    if (!formData.budget) {
-      setErrorMessage("Please select a budget range.");
-      setStatus("error");
-      return;
-    }
-
     if (!formData.message.trim()) {
       setErrorMessage("Please provide a brief description of your project.");
       setStatus("error");
@@ -190,66 +142,79 @@ export default function Contact() {
     setErrorMessage("");
     setCopied(false);
 
+    const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
+
+    if (!accessKey || accessKey === "YOUR_WEB3FORMS_ACCESS_KEY_HERE") {
+      setStatus("error");
+      setErrorMessage("The contact form is not configured yet. Please contact us directly.");
+      console.error("NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY is missing from the production build.");
+      return;
+    }
+
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const uniquePart = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+    const newTrackingId = `WNE-${date}-${uniquePart}`;
+    const emailMessage = `
+NEW WEB NESTLE ENQUIRY
+
+Enquiry ID: ${newTrackingId}
+
+Name: ${formData.name}
+Business: ${formData.business}
+Email: ${formData.email}
+Phone: ${formData.phone.trim() || "Not provided"}
+Instagram: ${formData.instagram.trim() || "Not provided"}
+Project Type: ${formData.projectType}
+Budget: ${formData.budget || "Not specified"}
+
+Project Details:
+${formData.message}
+`;
+
     try {
-      const response = await fetch("/api/contact", {
+      const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
         body: JSON.stringify({
+          access_key: accessKey,
+          subject: `New Web Nestle Enquiry - ${newTrackingId}`,
+          from_name: "Web Nestle Website",
           name: formData.name,
           business: formData.business,
           email: formData.email,
           phone: formData.phone.trim() || "Not provided",
           instagram: formData.instagram.trim() || "Not provided",
-          projectType: formData.projectType,
-          budget: formData.budget,
-          message: formData.message,
+          project_type: formData.projectType,
+          budget: formData.budget || "Not specified",
+          enquiry_id: newTrackingId,
+          message: emailMessage,
         }),
       });
 
-      const contentType = response.headers.get("content-type");
+      const responseText = await response.text();
+      let result: { success?: boolean; message?: string };
 
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(
-          "API route not found or returned an invalid response."
-        );
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        console.error("Web3Forms returned an unexpected response:", response.status, responseText.slice(0, 300));
+        throw new Error("The email service returned an unexpected response. Please try again later.");
       }
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success || !result.trackingId) {
-        throw new Error(
-          result.message ||
-            result.error ||
-            "Submission failed. Please try again."
-        );
+      if (!response.ok || !result.success) {
+        console.error("Web3Forms submission failed:", response.status, result);
+        throw new Error(result.message || "Your enquiry could not be sent. Please try again.");
       }
 
-      setTrackingId(result.trackingId);
+      setTrackingId(newTrackingId);
       setStatus("success");
-    } catch (err: unknown) {
+    } catch (err) {
       console.error("Form submission error:", err);
-
       setStatus("error");
-
-      setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again or reach out on Instagram."
-      );
-    }
-  };
-
-  const handleCopyTrackingId = async () => {
-    try {
-      await navigator.clipboard.writeText(trackingId);
-      setCopied(true);
-    } catch {
-      setErrorMessage(
-        "Could not copy automatically. Please select and copy your enquiry ID."
-      );
+      setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Please try again or reach out on Instagram.");
     }
   };
 
@@ -262,11 +227,10 @@ export default function Contact() {
 
       <div className="max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+          
           {/* LEFT COLUMN */}
           <motion.div
-            initial={
-              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
-            }
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
@@ -285,9 +249,7 @@ export default function Contact() {
               </h2>
 
               <p className="text-base sm:text-lg text-slate-300 font-normal leading-relaxed mb-8">
-                Tell us what you&apos;re building, what you need and where you
-                want to go. Drop your details and we&apos;ll get back to you
-                fast.
+                Tell us what you&apos;re building, what you need and where you want to go. Drop your details and we&apos;ll get back to you fast.
               </p>
             </div>
 
@@ -295,7 +257,7 @@ export default function Contact() {
               <p className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
                 Prefer to talk directly?
               </p>
-
+              
               <div className="flex flex-wrap items-center gap-3">
                 <a
                   href="https://instagram.com/web_nestle"
@@ -325,9 +287,7 @@ export default function Contact() {
 
           {/* RIGHT COLUMN */}
           <motion.div
-            initial={
-              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 30 }
-            }
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -345,10 +305,7 @@ export default function Contact() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label
-                    htmlFor="name"
-                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                  >
+                  <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                     Name <span className="text-pink-400">*</span>
                   </label>
                   <input
@@ -364,12 +321,8 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="business"
-                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                  >
-                    Business / Brand Name{" "}
-                    <span className="text-pink-400">*</span>
+                  <label htmlFor="business" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    Business / Brand Name <span className="text-pink-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -384,12 +337,10 @@ export default function Contact() {
                 </div>
               </div>
 
+              {/* Email & Phone Number */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label
-                    htmlFor="email"
-                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                  >
+                  <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                     Email <span className="text-pink-400">*</span>
                   </label>
                   <input
@@ -401,28 +352,19 @@ export default function Contact() {
                     onChange={handleChange}
                     placeholder="you@example.com"
                     className={`w-full bg-slate-900/90 border rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
-                      errors.email
-                        ? "border-red-500 ring-1 ring-red-500"
-                        : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      errors.email ? "border-red-500 ring-1 ring-red-500" : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     }`}
                   />
                   {errors.email && (
                     <p className="text-xs text-red-400 flex items-center gap-1 mt-1 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />{" "}
-                      {errors.email}
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.email}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="phone"
-                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                  >
-                    Phone / WhatsApp{" "}
-                    <span className="text-slate-500 font-normal">
-                      (Optional)
-                    </span>
+                  <label htmlFor="phone" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    Phone / WhatsApp <span className="text-slate-500 font-normal">(Optional)</span>
                   </label>
                   <input
                     type="tel"
@@ -432,29 +374,21 @@ export default function Contact() {
                     onChange={handleChange}
                     placeholder="+91 98765 43210"
                     className={`w-full bg-slate-900/90 border rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
-                      errors.phone
-                        ? "border-red-500 ring-1 ring-red-500"
-                        : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      errors.phone ? "border-red-500 ring-1 ring-red-500" : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     }`}
                   />
                   {errors.phone && (
                     <p className="text-xs text-red-400 flex items-center gap-1 mt-1 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />{" "}
-                      {errors.phone}
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.phone}
                     </p>
                   )}
                 </div>
               </div>
 
+              {/* Instagram Handle */}
               <div className="space-y-2">
-                <label
-                  htmlFor="instagram"
-                  className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                >
-                  Instagram Handle{" "}
-                  <span className="text-slate-500 font-normal">
-                    (Optional)
-                  </span>
+                <label htmlFor="instagram" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Instagram Handle <span className="text-slate-500 font-normal">(Optional)</span>
                 </label>
                 <input
                   type="text"
@@ -464,25 +398,19 @@ export default function Contact() {
                   onChange={handleChange}
                   placeholder="@yourusername"
                   className={`w-full bg-slate-900/90 border rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
-                    errors.instagram
-                      ? "border-red-500 ring-1 ring-red-500"
-                      : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    errors.instagram ? "border-red-500 ring-1 ring-red-500" : "border-slate-800 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                   }`}
                 />
                 {errors.instagram && (
                   <p className="text-xs text-red-400 flex items-center gap-1 mt-1 font-medium">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />{" "}
-                    {errors.instagram}
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.instagram}
                   </p>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label
-                    htmlFor="projectType"
-                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                  >
+                  <label htmlFor="projectType" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                     Project Type <span className="text-pink-400">*</span>
                   </label>
                   <select
@@ -493,15 +421,9 @@ export default function Contact() {
                     onChange={handleChange}
                     className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all cursor-pointer"
                   >
-                    <option value="" disabled>
-                      Select project type...
-                    </option>
+                    <option value="" disabled>Select project type...</option>
                     {projectTypes.map((type) => (
-                      <option
-                        key={type}
-                        value={type}
-                        className="bg-slate-900 text-white"
-                      >
+                      <option key={type} value={type} className="bg-slate-900 text-white">
                         {type}
                       </option>
                     ))}
@@ -509,29 +431,19 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="budget"
-                    className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                  >
-                    Budget Range <span className="text-pink-400">*</span>
+                  <label htmlFor="budget" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                    Budget Range <span className="text-slate-500 font-normal">(Optional)</span>
                   </label>
                   <select
                     id="budget"
                     name="budget"
-                    required
                     value={formData.budget}
                     onChange={handleChange}
                     className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all cursor-pointer"
                   >
-                    <option value="" disabled>
-                      Select budget range...
-                    </option>
+                    <option value="" disabled>Select budget range...</option>
                     {budgetRanges.map((range) => (
-                      <option
-                        key={range}
-                        value={range}
-                        className="bg-slate-900 text-white"
-                      >
+                      <option key={range} value={range} className="bg-slate-900 text-white">
                         {range}
                       </option>
                     ))}
@@ -540,12 +452,8 @@ export default function Contact() {
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="message"
-                  className="block text-xs font-semibold uppercase tracking-wider text-slate-300"
-                >
-                  Tell Us About Your Project{" "}
-                  <span className="text-pink-400">*</span>
+                <label htmlFor="message" className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Tell Us About Your Project <span className="text-pink-400">*</span>
                 </label>
                 <textarea
                   id="message"
@@ -580,7 +488,27 @@ export default function Contact() {
               </button>
             </form>
           </motion.div>
+
         </div>
+
+        <div className="mt-24 pt-12 border-t border-slate-800/80 text-center flex flex-col items-center justify-center space-y-4">
+          <p className="text-sm sm:text-base text-slate-400 font-medium">
+            Have an idea? <span className="text-white font-semibold">Let&apos;s turn it into something people remember.</span>
+          </p>
+          <a
+            href="#contact"
+            onClick={(e) => {
+              e.preventDefault();
+              const el = document.getElementById("contact");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="inline-flex items-center gap-2 text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 hover:opacity-85 transition-opacity cursor-pointer group"
+          >
+            <span>Start Your Project</span>
+            <ArrowRight className="w-4 h-4 text-pink-400 transition-transform group-hover:translate-x-1" />
+          </a>
+        </div>
+
       </div>
 
       {/* FULLSCREEN THANK YOU TAKEOVER SCREEN */}
@@ -594,6 +522,7 @@ export default function Contact() {
             className="fixed inset-0 z-50 bg-[#07090e]/98 backdrop-blur-3xl flex items-center justify-center px-4 sm:px-6"
           >
             <div className="max-w-lg w-full bg-slate-900/90 border border-slate-800/80 rounded-3xl p-8 sm:p-10 shadow-2xl shadow-purple-500/10 text-center relative">
+              
               <div className="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-6">
                 <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
@@ -602,47 +531,32 @@ export default function Contact() {
                 Thanks for Submitting!
               </h3>
 
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
-                Our team will contact you within{" "}
-                <span className="font-semibold text-pink-400">48 hrs</span>.
-                Save your enquiry ID below.
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-8">
+                Our team will contact you within <span className="font-semibold text-pink-400">48 hrs</span>. We will send you all the details through email or IG. Stay tuned!
               </p>
 
-              {/* ENQUIRY ID BOX */}
-              <div className="bg-slate-950/90 border border-indigo-500/30 rounded-2xl p-4 mb-6 text-left">
-                <div className="flex items-center gap-2 text-xs text-slate-400 font-mono mb-3">
-                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                  <span>YOUR ENQUIRY ID</span>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-sm font-mono font-bold text-indigo-300 bg-indigo-950/60 px-3 py-2 rounded-lg border border-indigo-800/50 break-all">
-                    {trackingId}
-                  </span>
-
+              <div className="bg-slate-950/80 border border-emerald-500/30 rounded-2xl p-4 mb-6 text-left">
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Your enquiry ID</div>
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-sm sm:text-base font-bold text-emerald-300 break-all">{trackingId}</code>
                   <button
                     type="button"
-                    onClick={handleCopyTrackingId}
-                    className="inline-flex items-center gap-2 text-sm text-white border border-slate-700 hover:border-indigo-400 rounded-lg px-3 py-2 transition-colors"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(trackingId);
+                        setCopied(true);
+                      } catch {
+                        setErrorMessage("Copy wasn't available. Please select and copy the enquiry ID manually.");
+                      }
+                    }}
+                    className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+                    aria-label="Copy enquiry ID"
                   >
-                    {copied ? (
-                      <>
-                        <Check className="w-4 h-4 text-emerald-400" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy ID
-                      </>
-                    )}
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copied ? "Copied" : "Copy"}
                   </button>
                 </div>
-
-                <p className="text-xs text-slate-400 mt-3">
-                  Save this ID for future communication with Web Nestle. It is
-                  an enquiry reference, not a login password.
-                </p>
+                <p className="text-xs text-slate-400 mt-2">Keep this ID for reference. It is a confirmation number, not a live tracking portal.</p>
               </div>
 
               <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 mb-8 flex items-center justify-between">
@@ -651,15 +565,10 @@ export default function Contact() {
                     <InstagramIcon className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <div className="text-xs text-slate-400 font-medium">
-                      Follow us on IG
-                    </div>
-                    <div className="text-sm font-bold text-white">
-                      @web_nestle
-                    </div>
+                    <div className="text-xs text-slate-400 font-medium">Follow us on IG</div>
+                    <div className="text-sm font-bold text-white">@web_nestle</div>
                   </div>
                 </div>
-
                 <a
                   href="https://instagram.com/web_nestle"
                   target="_blank"
@@ -673,14 +582,9 @@ export default function Contact() {
               <button
                 onClick={() => {
                   setStatus("idle");
-                  setErrorMessage("");
                   setTrackingId("");
                   setCopied(false);
-                  setErrors({
-                    email: "",
-                    phone: "",
-                    instagram: "",
-                  });
+                  setErrorMessage("");
                   setFormData({
                     name: "",
                     business: "",
@@ -697,6 +601,7 @@ export default function Contact() {
               >
                 Back to Website
               </button>
+
             </div>
           </motion.div>
         )}
